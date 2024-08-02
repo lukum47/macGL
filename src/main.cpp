@@ -23,7 +23,7 @@ std::string lightVertex = "D:/cpp/1/secondProject/res/shader/vertexLight.txt";
 
 std::string lightFragment = "D:/cpp/1/secondProject/res/shader/fragmentLight.txt";
 
-std::string fragment = "D:/cpp/1/secondProject/res/shader/fragment.txt";
+std::string fragment = "D:/cpp/1/secondProject/res/shader/fragment2.txt";
 
 GLfloat vertecies[] = {
 	-0.5f, -0.5f, -0.5f,
@@ -252,6 +252,13 @@ glm::vec3 cubes[] = {
 	glm::vec3(8.f, 0.4f, 0.6f)
 };
 
+glm::vec3 pointLightPositions[] = {
+	glm::vec3(0.7f,  0.2f,  2.0f),
+	glm::vec3(2.3f, -3.3f, -4.0f),
+	glm::vec3(-4.0f,  2.0f, -12.0f),
+	glm::vec3(0.0f,  0.0f, -3.0f)
+};
+
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -440,7 +447,7 @@ int main(int argc, char** argv) {
 	
 	//cubeProgram.setVec3("objectColor", 1.f, 0.5f, 0.31f);//задание цвета освещаемого объекта
 	//cubeProgram.setVec3("lightColor", 1.f, 1.f, 1.f);//цвет освещения
-	cubeProgram.setVec3("light.position", lightPos);//позиция источника света
+	//cubeProgram.setVec3("light.position", lightPos);//позиция источника света
 	cubeProgram.setVec3("viewPos", cameraPos);//позиция наблюдателя
 
 	/*glm::vec3 lightColor;
@@ -448,27 +455,54 @@ int main(int argc, char** argv) {
 	lightColor.y = sin(glfwGetTime() * 1.8f);
 	lightColor.z = sin(glfwGetTime() * 2.6f);*/
 
-	//установка параметров для направленного освещения
-	cubeProgram.setVec3("dirLight.direction", glm::vec3(-0.f, -2.f, -0.24f));
-
-	cubeProgram.setVec3("dirLight.ambient", glm::vec3(0.2f, 0.2f, 0.2f));
-	cubeProgram.setVec3("dirLight.diffuse", glm::vec3(1.f, 1.f, 1.f));
-	cubeProgram.setVec3("dirLight.specular", glm::vec3(1.f, 1.f, 1.f));
-
-	//установка параметров для прожеторного освещения
-	cubeProgram.setVec3("spotLight.ambient", glm::vec3(0.2f, 0.2f, 0.2f));
-	cubeProgram.setVec3("spotLight.diffuse", glm::vec3(1.f, 1.f, 1.f));
-	cubeProgram.setVec3("spotLight.specular", glm::vec3(1.f, 1.f, 1.f));
-
-	cubeProgram.setVec3("spotLight.position", cameraPos);
+	// directional light
+	cubeProgram.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
+	cubeProgram.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
+	cubeProgram.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
+	cubeProgram.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
+	// point light 1
+	cubeProgram.setVec3("pointLights[0].position", pointLightPositions[0]);
+	cubeProgram.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
+	cubeProgram.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
+	cubeProgram.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
+	cubeProgram.setFloat("pointLights[0].constant", 1.0f);
+	cubeProgram.setFloat("pointLights[0].linear", 0.09f);
+	cubeProgram.setFloat("pointLights[0].quadratic", 0.032f);
+	// point light 2
+	cubeProgram.setVec3("pointLights[1].position", pointLightPositions[1]);
+	cubeProgram.setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
+	cubeProgram.setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
+	cubeProgram.setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
+	cubeProgram.setFloat("pointLights[1].constant", 1.0f);
+	cubeProgram.setFloat("pointLights[1].linear", 0.09f);
+	cubeProgram.setFloat("pointLights[1].quadratic", 0.032f);
+	// point light 3
+	cubeProgram.setVec3("pointLights[2].position", pointLightPositions[2]);
+	cubeProgram.setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
+	cubeProgram.setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
+	cubeProgram.setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
+	cubeProgram.setFloat("pointLights[2].constant", 1.0f);
+	cubeProgram.setFloat("pointLights[2].linear", 0.09f);
+	cubeProgram.setFloat("pointLights[2].quadratic", 0.032f);
+	// point light 4
+	cubeProgram.setVec3("pointLights[3].position", pointLightPositions[3]);
+	cubeProgram.setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
+	cubeProgram.setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
+	cubeProgram.setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
+	cubeProgram.setFloat("pointLights[3].constant", 1.0f);
+	cubeProgram.setFloat("pointLights[3].linear", 0.09f);
+	cubeProgram.setFloat("pointLights[3].quadratic", 0.032f);
+	// spotLight
+	cubeProgram.setVec3("spotLight.position",cameraPos);
 	cubeProgram.setVec3("spotLight.direction", cameraFront);
-
-	cubeProgram.setFloat("spotLight.cutOff", glm::cos(glm::radians(17.5f)));
-	cubeProgram.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(22.5f)));
-
-	cubeProgram.setFloat("light.constant", 1.f);
-	cubeProgram.setFloat("light.linear", 0.35f);
-	cubeProgram.setFloat("light.quadratic", 0.44f);
+	cubeProgram.setVec3("spotLight.ambient", 0.f, 0.f, 0.f);
+	cubeProgram.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
+	cubeProgram.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+	cubeProgram.setFloat("spotLight.constant", 1.0f);
+	cubeProgram.setFloat("spotLight.linear", 0.09f);
+	cubeProgram.setFloat("spotLight.quadratic", 0.032f);
+	cubeProgram.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
+	cubeProgram.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
 
 
 	
@@ -478,9 +512,9 @@ int main(int argc, char** argv) {
 	glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
 	glm::vec3 emissionColor = lightColor;*/
 	//cubeProgram.setVec3("material.ambient", 0.f, 0.1995f, 0.0745f);
-	cubeProgram.setVec3("material.diffuse", 1.f, 1.f, 1.f);
-	cubeProgram.setVec3("material.specular", 1.f, 1.f, 1.f);
-	cubeProgram.setFloat("material.shinines", 0.4f);
+	//cubeProgram.setVec3("material.diffuse", 1.f, 1.f, 1.f);
+	//cubeProgram.setVec3("material.specular", 1.f, 1.f, 1.f);
+	//cubeProgram.setFloat("material.shinines", 0.4f);
 	/*cubeProgram.setVec3("emissionLight", emissionColor);*/
 	
 	if (flag == false) {
@@ -557,17 +591,16 @@ int main(int argc, char** argv) {
 	projectionLoc = lightProgram.uniformLoc("projection");
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 	glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+	for (int i = 0; i < 4; ++i) {
+		model = glm::mat4(1.f);
+		model = glm::translate(model, pointLightPositions[i]);
+		model = glm::scale(model, glm::vec3(0.2f));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		glBindVertexArray(lightVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+	}
 	
-	model = glm::mat4(1.f);
-	model = glm::translate(model, lightPos);
-	model = glm::scale(model, glm::vec3(0.2f));
-
 	
-	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-	
-
-	glBindVertexArray(lightVAO);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
 	glBindVertexArray(0);
 
 	glfwSwapBuffers(window);
