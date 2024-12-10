@@ -13,7 +13,7 @@
 #include <gtc/type_ptr.hpp>
 #include <gtc/matrix_transform.hpp>
 #include "stb_image.h"
-#include <array>
+#include <memory>
 //#include "MyFormat.h"
 
 //#define MAX_BONE_INFLUENCE 4
@@ -29,6 +29,14 @@ struct MyTextures {
 };
 
 #pragma pack(pop)
+
+struct FileMapping {//структура отображения файла в память 
+
+	HANDLE hFile; //дескриптор файла 
+	HANDLE hMapping; //дескриптор отображения 
+	size_t fsize; //размер файла 
+	unsigned char* dataPtr; //указатель на данные 
+};
 class Model {
 public:
 	Model(char* path) {
@@ -48,7 +56,7 @@ private:
 	std::vector<Texture> loadedTextures;
 	void loadModel(std::string path);// метод загрузки модели
 	 void processNode(aiNode* node, const aiScene* scene);
-	 Mesh processMesh(const HANDLE& handler, const int& vertSize, const int& indxSize, const int& texSize);
+	 Mesh processMesh(std::unique_ptr<FileMapping>& fMapping, const int& vertSize, const int& indxSize, const int& texSize);
 	 void loadConvertedModel(const char* path);
 	Mesh processMesh(aiMesh* mesh, const aiScene* scene);
 	std::vector<Texture> loadMaterialTexture(aiMaterial* mat, aiTextureType type, std::string typeName);

@@ -10,7 +10,7 @@ void Model::Draw(Render::ShaderProgram &program)
 void Model::loadModel(std::string path)
 {
 	Assimp::Importer import;
-	//auto scene = std::make_unique<aiScene>(*import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs));
+	
 	const aiScene* scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace );
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
 		std::cerr << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
@@ -29,7 +29,6 @@ void Model::processNode(aiNode* node, const aiScene* scene)
 	//обработать все полигональные сетки в узле(если есть) 
 		for (unsigned int i = 0; i < node->mNumMeshes; i++) {
 			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-			//auto mesh = std::make_unique<aiMesh>(*scene->mMeshes[node->mMeshes[i]]);
 			meshes.push_back(processMesh(mesh, scene));
 		
 		}
@@ -39,7 +38,7 @@ void Model::processNode(aiNode* node, const aiScene* scene)
 	}
 }
 
-Mesh Model::processMesh(const HANDLE& handler, const int& vertSize, const int& indxSize, const int& texSize)
+Mesh Model::processMesh(std::unique_ptr<FileMapping>& fMapping, const int& vertSize, const int& indxSize, const int& texSize)
 {
 	Texture textureMesh;
 	std::vector<Vertex> vertices;
@@ -49,28 +48,34 @@ Mesh Model::processMesh(const HANDLE& handler, const int& vertSize, const int& i
 	DWORD nBytes;
 	for (int vertIt = 0; vertIt < vertSize; ++vertIt) {
 		Vertex vert;
-		ReadFile(handler, &vert, sizeof(vert), &nBytes, NULL);
-		byteCount += nBytes;
+		std::memcpy(&vert,fMapping->dataPtr, sizeof(vert));
+		fMapping->dataPtr += sizeof(vert);
+	
 		vertices.push_back(vert);
 	}
 	
 	for (int indxIt = 0; indxIt < indxSize; ++indxIt) {
 		uint32_t indx;
-		ReadFile(handler, &indx, sizeof(indx), &nBytes, NULL);
-		byteCount += nBytes;
+		std::memcpy(&indx, fMapping->dataPtr, sizeof(indx));
+		fMapping->dataPtr += sizeof(indx);
+	
 		indices.push_back(indx);
 	}
 	MyTextures texes;
 	for (int texIt = 0; texIt < texSize; ++texIt) {
-		char str[100];
-		ReadFile(handler, &str, 100, &nBytes, NULL);
+		char str[100];								//принято соглашение на статический размер текстовой информации в файле 
+	
+		std::memcpy(&str, fMapping->dataPtr, 100); //тип текстуры 
 		texes.type = str;
-		ReadFile(handler, &str, 100, &nBytes, NULL);
-		texes.fileName = str;
-		
+		fMapping->dataPtr += 100;
+	
+		std::memcpy(&str, fMapping->dataPtr, 100);
+		texes.fileName = str;						//имя файла текстуры 
+		fMapping->dataPtr += 100;
+	
 		bool skip = false;
 		for (unsigned int j = 0; j < loadedTextures.size(); j++) {
-			if (std::strcmp(loadedTextures[j].path.data(), texes.fileName.c_str()) == 0) {
+			if (std::strcmp(loadedTextures[j].path.data(), texes.fileName.c_str()) == 0) {	//оптимизация с уже загруженными текстурами 
 
 				textures.push_back(loadedTextures[j]);
 				skip = true;
@@ -91,31 +96,70 @@ Mesh Model::processMesh(const HANDLE& handler, const int& vertSize, const int& i
 void Model::loadConvertedModel(const char* path)
 {
 	directory = std::string(path).substr(0,std::string(path).find_last_of('/'));
-	HANDLE descrypt = CreateFile(path, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE descrypt = CreateFile(path, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL); //дескриптор файла
 	if (descrypt == INVALID_HANDLE_VALUE) {
 		std::cerr << "READING FAILED :: " << GetLastError() << std::endl;
+		CloseHandle(descrypt);
 		return;
 	}
 	Header head;
+	DWORD dwFsize = GetFileSize(descrypt, NULL); 
+	if (dwFsize == INVALID_FILE_SIZE) {
+		std::cerr << "fileMappingCreate - CreateFile failed, fname = "
+			<< descrypt << std::endl;
+		CloseHandle(descrypt);
+		return;
+	}
+	HANDLE hMapping = CreateFileMapping(descrypt, nullptr, PAGE_READONLY, 0, 0, nullptr);//создание отображения 
+	if (hMapping == nullptr) {
+		std::cerr << "fileMappingCreate - CreateFile failed, fname = "
+			<< descrypt << std::endl;
+		CloseHandle(hMapping);
+		CloseHandle(descrypt);
+		return;
+	}
+	unsigned char* dataPtr = (unsigned char*)MapViewOfFile(hMapping, FILE_MAP_READ, 0, 0, dwFsize); //получение адреса отображения в памяти 
+	if (dataPtr == nullptr) {
+		std::cerr << "fileMappingCreate - CreateFile failed, fname = "
+			<< descrypt << std::endl;
+		CloseHandle(hMapping);
+		CloseHandle(descrypt);
+		return;
+	}
+	std::unique_ptr<FileMapping> mapping(new FileMapping); //создание динамической структуры отображения 
+	if (mapping == nullptr) {
+		std::cerr << "fileMappingCreate - malloc failed, fname = " << descrypt << std::endl;
+		UnmapViewOfFile(dataPtr);
+		CloseHandle(hMapping);
+		CloseHandle(descrypt);
+		return;
+	}
+	mapping->dataPtr = dataPtr;
+	mapping->fsize = (size_t)dwFsize;
+	mapping->hFile = descrypt;
+	mapping->hMapping = hMapping;
+
 	DWORD nBytes;
-	DWORD fSize = GetFileSize(descrypt, NULL);
 	uint32_t numVert;
 	uint32_t numIndx;
 	uint32_t numTex;
-	ReadFile(descrypt, &head, sizeof(head), &nBytes, 0);
-	byteCount += nBytes;
-	for (int i = 0; i < head.numOfMeshes; ++i) {
-		ReadFile(descrypt, &numVert, sizeof(uint32_t), &nBytes, NULL);
-		ReadFile(descrypt, &numIndx, sizeof(uint32_t), &nBytes, NULL);
-		ReadFile(descrypt, &numTex, sizeof(uint32_t), &nBytes, NULL);
-		byteCount += nBytes*3;
-		meshes.push_back(processMesh(descrypt, numVert, numIndx, numTex));
+	
+	std::memcpy(&head, mapping->dataPtr, sizeof(head)); //считывание заголовка по байтам 
+	mapping->dataPtr += sizeof(head);	//смещение адреса через арифметику указателей
+
+	for (int i = 0; i < head.numOfMeshes; ++i) { //считывание кол-ва данных каждого меша 
+		std::memcpy(&numVert, mapping->dataPtr, sizeof(uint32_t)); 
+		mapping->dataPtr += sizeof(uint32_t);
+		std::memcpy(&numIndx, mapping->dataPtr, sizeof(uint32_t));
+		mapping->dataPtr += sizeof(uint32_t);
+		std::memcpy(&numTex, mapping->dataPtr, sizeof(uint32_t));
+		mapping->dataPtr += sizeof(uint32_t);	
+		meshes.push_back(processMesh(mapping, numVert, numIndx, numTex)); //считывание и обработка самих данных
 	
 	}
-	if (fSize != byteCount) {
-		std::cerr << "ERROR::BYTES COUNTERS ARE NOT EQUAL" << std::endl;
-	}
-	CloseHandle(descrypt);
+	UnmapViewOfFile(mapping->dataPtr);
+	CloseHandle(mapping->hMapping);
+	CloseHandle(mapping->hFile);
 }
 
 Mesh Model::processMesh(aiMesh*  mesh, const aiScene* scene)

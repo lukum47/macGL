@@ -48,6 +48,8 @@ struct MyTexture {
 
 
 #pragma pack(pop)
+
+
 class MyFormat 
 {
 public:

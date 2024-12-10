@@ -13,22 +13,23 @@ void MyFormat::convertModel(std::string sourcePath, const char* path)
         std::cerr << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
         return;
     }
+	// пути для чтения и записи
     lastDirectory = sourcePath.substr(0, sourcePath.find_last_of('/'));
 	nextDirectory = std::string(path).substr(0, std::string(path).find_last_of('/'));
     EaxmodHeader header;
     header.numOfMeshes = scene->mNumMeshes;
-	
+	//дескриптор файла по пути для записи
 	HANDLE handler = CreateFile(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (handler == INVALID_HANDLE_VALUE) {
 		std::cerr << "CREATION FILE FAILED :: " << GetLastError() << std::endl;
 		return;
 	}
 	DWORD  dwCount;
-	WriteFile(handler, &header, sizeof(header), &dwCount, NULL);
+	WriteFile(handler, &header, sizeof(header), &dwCount, NULL);//считываем заголовок файла
     for (int i = 0; i < scene->mNumMeshes; ++i) {
         aiMesh* mesh = scene->mMeshes[i];
 
-        processMesh(mesh, scene, handler);
+        processMesh(mesh, scene, handler); //счмтываем данные мешей и сохраняем в файл
     }
 
 	CloseHandle(handler);
@@ -38,11 +39,11 @@ void MyFormat::convertModel(std::string sourcePath, const char* path)
 void MyFormat::processMesh(aiMesh* mesh, const aiScene* scene, const HANDLE& handler)
 {
 	DWORD  dwCount;
-	uint32_t countBuf = mesh->mNumVertices;
-	WriteFile(handler, &countBuf, sizeof(uint32_t), &dwCount, NULL);
+	uint32_t countBuf = mesh->mNumVertices;//счетчик кол-ва данных для дальнейшего считывания 
+	WriteFile(handler, &countBuf, sizeof(uint32_t), &dwCount, NULL);//сохраняем кол-во вертексов 
 	countBuf = mesh->mNumFaces * 3;
-	WriteFile(handler, &countBuf, sizeof(uint32_t), &dwCount, NULL);
-	countBuf = scene->mMaterials[mesh->mMaterialIndex]->GetTextureCount(aiTextureType_DIFFUSE);
+	WriteFile(handler, &countBuf, sizeof(uint32_t), &dwCount, NULL);//созраняем кол-во индексов 
+	countBuf = scene->mMaterials[mesh->mMaterialIndex]->GetTextureCount(aiTextureType_DIFFUSE); //считываем кол-во текстур по тегам 
 	countBuf += scene->mMaterials[mesh->mMaterialIndex]->GetTextureCount(aiTextureType_SPECULAR);
 	countBuf += scene->mMaterials[mesh->mMaterialIndex]->GetTextureCount(aiTextureType_NORMALS);
 	countBuf += scene->mMaterials[mesh->mMaterialIndex]->GetTextureCount(aiTextureType_HEIGHT);
@@ -85,7 +86,7 @@ void MyFormat::processMesh(aiMesh* mesh, const aiScene* scene, const HANDLE& han
 		}
 		else vertex.TexCoords = glm::vec2(0.f, 0.f);
 	
-		WriteFile(handler, &vertex, sizeof(vertex), &dwCount, NULL);
+		WriteFile(handler, &vertex, sizeof(vertex), &dwCount, NULL); //запись структуры vertex
 			if (dwCount != sizeof(vertex)) {
 				std::cerr << "INVALID SAVING VERTEX DATA MESH NUM: " << i << std::endl;
 			}
@@ -94,7 +95,7 @@ void MyFormat::processMesh(aiMesh* mesh, const aiScene* scene, const HANDLE& han
 	for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
 		aiFace face = mesh->mFaces[i];
 		for (unsigned int j = 0; j < face.mNumIndices; j++) {
-			WriteFile(handler, &face.mIndices[j], sizeof(uint32_t), &dwCount, NULL);
+			WriteFile(handler, &face.mIndices[j], sizeof(uint32_t), &dwCount, NULL);//запись индекса
 			if (dwCount != sizeof(uint32_t)) {
 				std::cerr << "INVALID SAVING INDEX DATA MESH NUM: " << i << std::endl;
 			}
@@ -120,8 +121,8 @@ void MyFormat::loadMaterialTexture(aiMaterial* mat, aiTextureType type, std::str
 		aiString str;
 		mat->GetTexture(type, i, &str);
 		bool skip = false;
-		for (unsigned int j = 0; j < loadedTextures.size(); j++) {
-			if (std::strcmp(loadedTextures[j].fileName, str.C_Str()) == 0) {
+		for (unsigned int j = 0; j < loadedTextures.size(); j++) {// если в массиве есть ранее считанные структуры, 
+			if (std::strcmp(loadedTextures[j].fileName, str.C_Str()) == 0) {// то пропускаем создание и записываем в файл уже существующую текстуру
 
 				WriteFile(handler, &loadedTextures[j], sizeof(MyTexture), &dwCount, NULL);
 				skip = true;
