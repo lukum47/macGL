@@ -1,0 +1,13 @@
+#version 460 
+layout(position = 0) in vec3 planePos;
+layout(position = 1) in vec2 texCoords;
+
+out vec2 textureCoords;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+void main() {
+textureCoords = texCoords;
+gl_Position = projection * view * model * vec4(planePos, 1.0);
+}
