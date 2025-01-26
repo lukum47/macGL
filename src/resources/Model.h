@@ -14,7 +14,7 @@
 #include <gtc/matrix_transform.hpp>
 #include "stb_image.h"
 #include <memory>
-//#include "MyFormat.h"
+
 
 //#define MAX_BONE_INFLUENCE 4
 #pragma pack(push, 1)
@@ -36,6 +36,10 @@ struct FileMapping {//структура отображения файла в память
 	HANDLE hMapping; //дескриптор отображения 
 	size_t fsize; //размер файла 
 	unsigned char* dataPtr; //указатель на данные 
+};
+struct validTextures {
+	bool diffuse;
+	bool specular;
 };
 class Model {
 public:

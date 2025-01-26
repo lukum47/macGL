@@ -11,7 +11,7 @@ void Model::loadModel(std::string path)
 {
 	Assimp::Importer import;
 	
-	const aiScene* scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace );
+	const aiScene* scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals  | aiProcess_CalcTangentSpace );
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
 		std::cerr << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
 		return;
@@ -238,13 +238,23 @@ Mesh Model::processMesh(aiMesh*  mesh, const aiScene* scene)
 std::vector<Texture> Model::loadMaterialTexture( aiMaterial* mat, aiTextureType type, std::string typeName)
 {
 	std::vector<Texture> textures;
+
 	for (unsigned int i = 0; i < mat->GetTextureCount(type); i++) {
 		unsigned int count = mat->GetTextureCount(type);
 		aiString str;
 		mat->GetTexture(type, i, &str);
-		bool skip = false;
+		std::string fName = str.C_Str();
+	
+		size_t fIndx = fName.find_last_of("\\");
+		if (fIndx != fName.npos) {
+		fName = fName.substr(fIndx, fName.size());
+		if (fName.substr(fName.find_last_of('.'), fName.size()) == ".tif") {
+			fName = fName.substr(0, fName.find_last_of('.')) + ".png";
+		}
+		}
+  		bool skip = false;
 		for (unsigned int j = 0; j < loadedTextures.size(); j++) {
-			if (std::strcmp(loadedTextures[j].path.data(), str.C_Str()) == 0) {
+			if (std::strcmp(loadedTextures[j].path.data(), fName.c_str()) == 0) {
 			
 				textures.push_back(loadedTextures[j]);
 				skip = true;
@@ -254,9 +264,9 @@ std::vector<Texture> Model::loadMaterialTexture( aiMaterial* mat, aiTextureType 
 		}
 		if (!skip) {
 			Texture texture;
-			texture.id = TextureFromFile(str.C_Str(), this->directory);
+			texture.id = TextureFromFile(fName.c_str(), this->directory);
 			texture.type = typeName;
-			texture.path = str.C_Str();
+			texture.path = fName.c_str();
 			textures.push_back(texture);
 			loadedTextures.push_back(texture);
 		}

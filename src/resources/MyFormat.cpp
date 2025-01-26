@@ -7,8 +7,9 @@ void MyFormat::convertModel(std::string sourcePath, const char* path)
         std::cout << "FILE IS ALREADY IN CORRECT FORMAT" << std::endl;
         return;
     }
+
     Assimp::Importer import;
-    const aiScene* scene = import.ReadFile(sourcePath.c_str(), aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+    const aiScene* scene = import.ReadFile(sourcePath.c_str(), aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         std::cerr << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
         return;
@@ -105,12 +106,12 @@ void MyFormat::processMesh(aiMesh* mesh, const aiScene* scene, const HANDLE& han
 	
 
 	 aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-
+	 
 	 loadMaterialTexture(material,aiTextureType_DIFFUSE, "materials.diffuse", handler);
 	 loadMaterialTexture(material,aiTextureType_SPECULAR, "materials.specular", handler);
 	 loadMaterialTexture(material,aiTextureType_NORMALS, "materials.normal", handler);
 	 loadMaterialTexture(material,aiTextureType_HEIGHT, "materials.height", handler);
-	
+	 loadMaterialTexture(material, aiTextureType_DIFFUSE_ROUGHNESS, "material.diffuse", handler);
 }
 
 void MyFormat::loadMaterialTexture(aiMaterial* mat, aiTextureType type, std::string typeName, const HANDLE& handler)
@@ -120,9 +121,18 @@ void MyFormat::loadMaterialTexture(aiMaterial* mat, aiTextureType type, std::str
 		unsigned int count = mat->GetTextureCount(type);
 		aiString str;
 		mat->GetTexture(type, i, &str);
+		std::string fName = str.C_Str();
+		size_t fIndx = fName.find_last_of("\\");
+		if (fIndx != fName.npos) {
+			fName = fName.substr(fIndx+1, fName.size());
+			if (fName.substr(fName.find_last_of('.'), fName.size()) == ".tif") {
+				fName = fName.substr(0, fName.find_last_of('.')) + ".png";
+			}
+		}
+		
 		bool skip = false;
-		for (unsigned int j = 0; j < loadedTextures.size(); j++) {// если в массиве есть ранее считанные структуры, 
-			if (std::strcmp(loadedTextures[j].fileName, str.C_Str()) == 0) {// то пропускаем создание и записываем в файл уже существующую текстуру
+		for (unsigned int j = 0; j < loadedTextures.size(); j++) {// если в массиве есть ранее считанные текстуры, 
+			if (std::strcmp(loadedTextures[j].fileName, fName.c_str()) == 0) {// то пропускаем создание и записываем в файл уже существующую текстуру
 
 				WriteFile(handler, &loadedTextures[j], sizeof(MyTexture), &dwCount, NULL);
 				skip = true;
@@ -133,7 +143,7 @@ void MyFormat::loadMaterialTexture(aiMaterial* mat, aiTextureType type, std::str
 		if (!skip) {
 			MyTexture texture;
 			strcpy(texture.type, typeName.c_str());
-			strcpy(texture.fileName, str.C_Str());
+			strcpy(texture.fileName, fName.c_str());
 			WriteFile(handler, &texture, sizeof(MyTexture), &dwCount, NULL);
 			std::string last = this->lastDirectory + '/' + texture.fileName;
 			std::string next = this->nextDirectory + '/' + texture.fileName;
